@@ -42,5 +42,5 @@ class ChatService:
             if text_content and text_content.startswith(last_yielded_text):
                 delta = text_content[len(last_yielded_text) :]
                 if delta:
-                    yield f"0:{json.dumps(delta)}\n"
+                    yield f"Travel Agent:{json.dumps(delta, ensure_ascii=False)}\n"
                     last_yielded_text = text_content
