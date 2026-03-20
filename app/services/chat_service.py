@@ -1,6 +1,7 @@
 import json
 from google.adk.runners import Runner
 from google.genai import types
+from google.adk.agents.run_config import RunConfig, StreamingMode
 
 
 class ChatService:
@@ -23,7 +24,7 @@ class ChatService:
     ):
         await self.get_or_create_session(user_id, session_id)
 
-        last_yielded_text = ""
+        run_config = RunConfig(streaming_mode=StreamingMode.SSE)
 
         async for event in self.runner.run_async(
             user_id=user_id,
@@ -31,16 +32,15 @@ class ChatService:
             new_message=types.Content(
                 role="user", parts=[types.Part.from_text(text=message_text)]
             ),
+            run_config=run_config
         ):
-            # Logic to extract delta text
-            text_content = (
-                "".join([p.text for p in event.content.parts if p.text])
-                if event.content
-                else ""
-            )
+            # When StreamingMode.SSE is used, the ADK runner yields "partial" events
+            # that contain the new token chunks directly. We don't need to diff!
+            if event.partial and event.content and event.content.parts:
+                has_text = any(p.text for p in event.content.parts)
+                has_fc = any(p.function_call for p in event.content.parts)
 
-            if text_content and text_content.startswith(last_yielded_text):
-                delta = text_content[len(last_yielded_text) :]
-                if delta:
-                    yield f"Travel Agent:{json.dumps(delta, ensure_ascii=False)}\n"
-                    last_yielded_text = text_content
+                if has_text and not has_fc:
+                    text_chunk = "".join(p.text or "" for p in event.content.parts)
+                    if text_chunk:
+                        yield text_chunk
