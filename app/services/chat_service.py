@@ -43,4 +43,6 @@ class ChatService:
                 if has_text and not has_fc:
                     text_chunk = "".join(p.text or "" for p in event.content.parts)
                     if text_chunk:
-                        yield text_chunk
+                        yield f"0:{json.dumps(text_chunk)}\n"
+
+        yield 'd:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n'

@@ -22,11 +22,24 @@ async def chat_endpoint(
         return JSONResponse({"error": "no messages"}, status_code=400)
 
     # Extracting identifiers
-    last_message = messages[-1]["content"]
+    last_msg = messages[-1]
+    if isinstance(last_msg.get("content"), str):
+        last_message = last_msg["content"]
+    else:
+        parts = last_msg.get("parts", [])
+        last_message = "".join(p.get("text", "") for p in parts if p.get("type") == "text")
+
+    if not last_message:
+        return JSONResponse({"error": "no message content"}, status_code=400)
+
     session_id = data.get("id", "default_session")
     user_id = "default_user"
 
     return StreamingResponse(
         chat_service.stream_chat_response_vercel(user_id, session_id, last_message),
-        media_type="text/event-stream",
+        media_type="text/plain; charset=utf-8",
+        headers={
+            "x-vercel-ai-data-stream": "v1",
+            "Cache-Control": "no-cache",
+        },
     )
