@@ -23,6 +23,7 @@ root_agent = LlmAgent(
     tools=[web_search],
     planner=BuiltInPlanner(
         thinking_config=types.ThinkingConfig(
+            include_thoughts=True,
             thinking_budget=1000,
         ),
     ),

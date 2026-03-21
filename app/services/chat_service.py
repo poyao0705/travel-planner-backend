@@ -29,10 +29,11 @@ class ChatService:
 
         message_id = f"msg_{uuid.uuid4().hex}"
         text_part_id = f"text_{uuid.uuid4().hex}"
+        reasoning_part_id = f"reasoning_{uuid.uuid4().hex}"
 
         yield f"data: {json.dumps({'type': 'start', 'messageId': message_id})}\n\n"
         yield f"data: {json.dumps({'type': 'text-start', 'id': text_part_id})}\n\n"
-        # yield f"data: {json.dumps({'type': 'reasoning-start', 'id': text_part_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'reasoning-start', 'id': reasoning_part_id})}\n\n"
 
         async for event in self.runner.run_async(
             user_id=user_id,
@@ -45,22 +46,27 @@ class ChatService:
             # When StreamingMode.SSE is used, the ADK runner yields "partial" events
             # that contain the new token chunks directly. We don't need to diff!
             if event.partial and event.content and event.content.parts:
-                has_text = any(p.text for p in event.content.parts)
-                # has_thought = any(p.thought for p in event.content.parts)
-                has_fc = any(p.function_call for p in event.content.parts)
+                text_parts = []
+                thought_parts = []
+                has_fc = False
 
-                if has_text and not has_fc:
-                    text_chunk = "".join(p.text or "" for p in event.content.parts)
-                    if text_chunk:
-                        yield f"data: {json.dumps({'type': 'text-delta', 'id': text_part_id, 'delta': text_chunk})}\n\n"
+                for p in event.content.parts:
+                    if p.function_call:
+                        has_fc = True
+                    if p.text and not p.thought:
+                        text_parts.append(p.text)
+                    if p.thought:
+                        thought_parts.append(p.text)
 
-                # if has_thought:
-                #     thought_chunk = "".join(
-                #         p.thought or "" for p in event.content.parts
-                #     )
-                #     if thought_chunk:
-                #         yield f"data: {json.dumps({'type': 'reasoning-delta', 'id': text_part_id, 'delta': thought_chunk})}\n\n"
+                if text_parts and not has_fc:
+                    text_chunk = "".join(text_parts)
+                    yield f"data: {json.dumps({'type': 'text-delta', 'id': text_part_id, 'delta': text_chunk})}\n\n"
+
+                if thought_parts:
+                    thought_chunk = "".join(thought_parts)
+                    yield f"data: {json.dumps({'type': 'reasoning-delta', 'id': reasoning_part_id, 'delta': thought_chunk})}\n\n"
 
         yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
-        # yield f"data: {json.dumps({'type': 'reasoning-end', 'id': text_part_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'reasoning-end', 'id': reasoning_part_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'finish'})}\n\n"
         yield "data: [DONE]\n\n"
