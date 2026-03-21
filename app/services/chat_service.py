@@ -32,6 +32,7 @@ class ChatService:
 
         yield f"data: {json.dumps({'type': 'start', 'messageId': message_id})}\n\n"
         yield f"data: {json.dumps({'type': 'text-start', 'id': text_part_id})}\n\n"
+        # yield f"data: {json.dumps({'type': 'reasoning-start', 'id': text_part_id})}\n\n"
 
         async for event in self.runner.run_async(
             user_id=user_id,
@@ -39,12 +40,13 @@ class ChatService:
             new_message=types.Content(
                 role="user", parts=[types.Part.from_text(text=message_text)]
             ),
-            run_config=run_config
+            run_config=run_config,
         ):
             # When StreamingMode.SSE is used, the ADK runner yields "partial" events
             # that contain the new token chunks directly. We don't need to diff!
             if event.partial and event.content and event.content.parts:
                 has_text = any(p.text for p in event.content.parts)
+                # has_thought = any(p.thought for p in event.content.parts)
                 has_fc = any(p.function_call for p in event.content.parts)
 
                 if has_text and not has_fc:
@@ -52,5 +54,13 @@ class ChatService:
                     if text_chunk:
                         yield f"data: {json.dumps({'type': 'text-delta', 'id': text_part_id, 'delta': text_chunk})}\n\n"
 
+                # if has_thought:
+                #     thought_chunk = "".join(
+                #         p.thought or "" for p in event.content.parts
+                #     )
+                #     if thought_chunk:
+                #         yield f"data: {json.dumps({'type': 'reasoning-delta', 'id': text_part_id, 'delta': thought_chunk})}\n\n"
+
         yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
+        # yield f"data: {json.dumps({'type': 'reasoning-end', 'id': text_part_id})}\n\n"
         yield "data: [DONE]\n\n"
