@@ -1,4 +1,5 @@
 import json
+import uuid
 from google.adk.runners import Runner
 from google.genai import types
 from google.adk.agents.run_config import RunConfig, StreamingMode
@@ -26,6 +27,12 @@ class ChatService:
 
         run_config = RunConfig(streaming_mode=StreamingMode.SSE)
 
+        message_id = f"msg_{uuid.uuid4().hex}"
+        text_part_id = f"text_{uuid.uuid4().hex}"
+
+        yield f"data: {json.dumps({'type': 'start', 'messageId': message_id})}\n\n"
+        yield f"data: {json.dumps({'type': 'text-start', 'id': text_part_id})}\n\n"
+
         async for event in self.runner.run_async(
             user_id=user_id,
             session_id=session_id,
@@ -43,6 +50,7 @@ class ChatService:
                 if has_text and not has_fc:
                     text_chunk = "".join(p.text or "" for p in event.content.parts)
                     if text_chunk:
-                        yield f"0:{json.dumps(text_chunk)}\n"
+                        yield f"data: {json.dumps({'type': 'text-delta', 'id': text_part_id, 'delta': text_chunk})}\n\n"
 
-        yield 'd:{"finishReason":"stop","usage":{"promptTokens":0,"completionTokens":0}}\n'
+        yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
+        yield "data: [DONE]\n\n"
