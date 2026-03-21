@@ -32,8 +32,9 @@ class ChatService:
         reasoning_part_id = f"reasoning_{uuid.uuid4().hex}"
 
         yield f"data: {json.dumps({'type': 'start', 'messageId': message_id})}\n\n"
-        yield f"data: {json.dumps({'type': 'text-start', 'id': text_part_id})}\n\n"
-        yield f"data: {json.dumps({'type': 'reasoning-start', 'id': reasoning_part_id})}\n\n"
+
+        text_started = False
+        reasoning_started = False
 
         async for event in self.runner.run_async(
             user_id=user_id,
@@ -60,13 +61,21 @@ class ChatService:
 
                 if text_parts and not has_fc:
                     text_chunk = "".join(text_parts)
+                    if not text_started:
+                        yield f"data: {json.dumps({'type': 'text-start', 'id': text_part_id})}\n\n"
+                        text_started = True
                     yield f"data: {json.dumps({'type': 'text-delta', 'id': text_part_id, 'delta': text_chunk})}\n\n"
 
                 if thought_parts:
                     thought_chunk = "".join(thought_parts)
+                    if not reasoning_started:
+                        yield f"data: {json.dumps({'type': 'reasoning-start', 'id': reasoning_part_id})}\n\n"
+                        reasoning_started = True
                     yield f"data: {json.dumps({'type': 'reasoning-delta', 'id': reasoning_part_id, 'delta': thought_chunk})}\n\n"
 
-        yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
-        yield f"data: {json.dumps({'type': 'reasoning-end', 'id': reasoning_part_id})}\n\n"
+        if text_started:
+            yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
+        if reasoning_started:
+            yield f"data: {json.dumps({'type': 'reasoning-end', 'id': reasoning_part_id})}\n\n"
         yield f"data: {json.dumps({'type': 'finish'})}\n\n"
         yield "data: [DONE]\n\n"
