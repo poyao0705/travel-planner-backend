@@ -1,6 +1,5 @@
 import json
 import uuid
-from google.adk.runners import Runner
 from google.genai import types
 from google.adk.agents.run_config import RunConfig, StreamingMode
 
@@ -11,19 +10,55 @@ class ChatService:
         self.runner = runner
         self.app_name = "travel_planner"
 
-    async def get_or_create_session(self, user_id: str, session_id: str):
-        session = await self.session_service.get_session(
-            app_name=self.app_name, user_id=user_id, session_id=session_id
-        )
-        if not session:
-            await self.session_service.create_session(
-                app_name=self.app_name, user_id=user_id, session_id=session_id
-            )
+    def _session_kwargs(self, user_id: str, session_id: str) -> dict:
+        return {
+            "app_name": self.app_name,
+            "user_id": user_id,
+            "session_id": session_id,
+        }
+
+    async def ensure_session(self, user_id: str, session_id: str):
+        kwargs = self._session_kwargs(user_id, session_id)
+
+        session = await self.session_service.get_session(**kwargs)
+        if session is None:
+            session = await self.session_service.create_session(**kwargs)
+
+        return session
+    
+    def build_ui_data(self, state: dict):
+        # This function can be expanded to format the response in a way that's optimal for the frontend UI
+        map_result = state.get("map_result")
+        if not map_result:
+            return {}
+
+        if hasattr(map_result, "model_dump"):
+            map_payload = map_result.model_dump()
+        elif isinstance(map_result, dict):
+            map_payload = map_result
+        else:
+            return {}
+
+        center = map_payload.get("center")
+        zoom = map_payload.get("zoom")
+        if not center or zoom is None:
+            return {}
+
+        return {
+            "map": {
+                "center": center,
+                "zoom": zoom,
+                "displayName": map_payload.get("display_name"),
+                "query": map_payload.get("query"),
+            },
+            # Include other state information as needed
+        }
+
 
     async def stream_chat_response_vercel(
         self, user_id: str, session_id: str, message_text: str
     ):
-        await self.get_or_create_session(user_id, session_id)
+        await self.ensure_session(user_id, session_id)
 
         run_config = RunConfig(streaming_mode=StreamingMode.SSE)
 
@@ -77,5 +112,13 @@ class ChatService:
             yield f"data: {json.dumps({'type': 'text-end', 'id': text_part_id})}\n\n"
         if reasoning_started:
             yield f"data: {json.dumps({'type': 'reasoning-end', 'id': reasoning_part_id})}\n\n"
+        latest_session = await self.session_service.get_session(
+            **self._session_kwargs(user_id, session_id)
+        )
+        state = (latest_session.state if latest_session else {}) or {}
+        ui_data = self.build_ui_data(state)
+        yield f"data: {json.dumps({'type': 'data-ui-data', 'data': ui_data})}\n\n" if ui_data else ""
+
+    
         yield f"data: {json.dumps({'type': 'finish'})}\n\n"
         yield "data: [DONE]\n\n"
