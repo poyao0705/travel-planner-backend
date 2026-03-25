@@ -2,7 +2,9 @@ import json
 import uuid
 
 from langchain_core.messages import AIMessage, AIMessageChunk
+from app.core.log import get_logger
 
+logger = get_logger(__name__)
 
 def _message_content(message: object) -> str:
     content = getattr(message, "content", "")
@@ -69,6 +71,7 @@ async def langchain_graph_to_vercel_sse(graph, message_text: str, thread_id: str
             if mode == "messages":
                 message, _metadata = payload
                 reasoning_chunks, text_chunks = _extract_stream_blocks(message)
+                logger.info(f"Extracted {len(reasoning_chunks)} reasoning chunks and {len(text_chunks)} text chunks from message stream.")
 
                 if reasoning_chunks:
                     if not reasoning_started:

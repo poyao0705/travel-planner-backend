@@ -27,6 +27,7 @@ class _CityExtraction(BaseModel):
     reply: str = PydanticField(
         description=(
             "A short confirmation if a destination was found, "
+            "Include thought process reasoning if no destination was found, and ask for clarification if needed. This will be shown to the user as the assistant's response, "
             "or a clarification question if the destination is still unknown."
         ),
     )

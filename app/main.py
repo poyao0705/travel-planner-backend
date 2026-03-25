@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 # Force load the .env in the root into the environment
 load_dotenv(override=True)
 
-from app.api.core.log import setup_logging
+from app.core.log import setup_logging
 from app.api.v1 import router as v1
 
 app = FastAPI()
