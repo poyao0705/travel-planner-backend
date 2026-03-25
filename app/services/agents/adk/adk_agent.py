@@ -59,7 +59,7 @@ def geocode_location(query: str) -> dict:
 map_agent = LlmAgent(
     name="map_agent",
     mode="single_turn",
-    model="gemini-2.5-flash",
+    model="gemini-3-flash-preview",
     description="An agent that provides information about places and coordinates.",
     instruction="""You are a helpful assistant that provides information about places and coordinates.
     You MUST return valid JSON only. Do not include any explanation or text outside JSON.
@@ -83,7 +83,7 @@ map_agent = LlmAgent(
 # 2. Build the Agent
 root_agent = LlmAgent(
     name="search_bot",
-    model="gemini-2.5-flash",
+    model="gemini-3-flash-preview",
     description="A travel agent delegating tasks to subagents to help users plan trips.",
     instruction="""You are a travel agent that plans trips.
     Always ask about the user's travel preferences, proceed only when narrow down to a specific city or location.

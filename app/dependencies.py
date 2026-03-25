@@ -1,8 +1,9 @@
-from app.services.chat_service import ChatService
-from app.services.agent import root_agent
 from google.adk.sessions import InMemorySessionService
-from fastapi import Depends
 from google.adk.runners import Runner
+from fastapi import Depends
+
+import app.services.agents.adk.adk_agent as adk_agent
+from app.services.chat_service import ChatService
 
 
 # In-memory session service must be global to persist sessions across requests
@@ -10,7 +11,7 @@ _session_service = InMemorySessionService()
 
 
 def get_root_agent():
-    return root_agent
+    return adk_agent.root_agent
 
 
 def get_session_service():
