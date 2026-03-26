@@ -27,6 +27,7 @@ def _extract_message_text(message: object) -> str:
     """Return joined text content from a LangChain AI message or chunk."""
     return "".join(_extract_text_chunks(message))
 
+
 async def langchain_events_to_internal(events, *, out: dict | None = None):
     """Translate LangGraph astream events into the shared internal stream format."""
     text_part_id = f"text_{uuid.uuid4().hex}"
