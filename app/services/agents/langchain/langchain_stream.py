@@ -68,14 +68,8 @@ async def langchain_events_to_internal(events, *, out: dict | None = None):
         part_type = part.get("type")
 
         if part_type == "messages":
-            message, _metadata = part["data"]
+            message, _ = part["data"]
             text_chunks = _extract_text_chunks(message)
-
-            # Fallback for models that stream plain text without content blocks.
-            if not text_chunks:
-                text = _message_content(message)
-                if text:
-                    text_chunks = [text]
 
             if text_chunks:
                 if not text_started:
@@ -88,17 +82,6 @@ async def langchain_events_to_internal(events, *, out: dict | None = None):
 
         elif part_type == "values":
             latest_values = part["data"]
-
-    if not text_started and latest_values is not None:
-        messages = getattr(latest_values, "messages", None)
-        if messages is None and isinstance(latest_values, dict):
-            messages = latest_values.get("messages", [])
-
-        response_text = _latest_assistant_text(messages or [])
-        if response_text:
-            yield StreamEvent.text_start(text_part_id)
-            yield StreamEvent.text_delta(text_part_id, response_text)
-            text_started = True
 
     if text_started:
         yield StreamEvent.text_end(text_part_id)
