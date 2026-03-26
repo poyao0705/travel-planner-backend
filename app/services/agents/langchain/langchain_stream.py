@@ -22,32 +22,6 @@ def _extract_text_chunks(message: object) -> list[str]:
 
     return text_chunks
 
-
-def _message_content(message: object) -> str:
-    """Best-effort plain text extraction from a LangChain message."""
-    content = getattr(message, "content", "")
-
-    if isinstance(content, str):
-        return content
-
-    if isinstance(content, list):
-        text_parts: list[str] = []
-        for part in content:
-            if isinstance(part, str):
-                text_parts.append(part)
-            elif isinstance(part, dict) and part.get("type") == "text":
-                text = part.get("text")
-                if text:
-                    text_parts.append(str(text))
-            elif hasattr(part, "text"):
-                text = getattr(part, "text", "")
-                if text:
-                    text_parts.append(str(text))
-        return "".join(text_parts)
-
-    return str(content) if content is not None else ""
-
-
 async def langchain_events_to_internal(events, *, out: dict | None = None):
     """Translate LangGraph astream events into the shared internal stream format."""
     text_part_id = f"text_{uuid.uuid4().hex}"
