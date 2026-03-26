@@ -8,7 +8,6 @@ def get_root_llm() -> ChatOpenRouter:
     return ChatOpenRouter(
         model="anthropic/claude-sonnet-4.5",
         max_completion_tokens=16384,
-        reasoning={"effort": "high", "summary": "auto"},
     )
 
 @lru_cache
@@ -17,5 +16,4 @@ def get_map_agent_llm() -> ChatOpenRouter:
     return ChatOpenRouter(
         model="anthropic/claude-sonnet-4.5",
         max_completion_tokens=8192,
-        reasoning={"effort": "medium", "summary": "auto"},
     )
