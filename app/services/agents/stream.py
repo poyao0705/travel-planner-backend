@@ -42,18 +42,6 @@ class StreamEvent:
         return {"type": "text-end", "id": part_id}
 
     @staticmethod
-    def reasoning_start(part_id):
-        return {"type": "reasoning-start", "id": part_id}
-
-    @staticmethod
-    def reasoning_delta(part_id, text):
-        return {"type": "reasoning-delta", "id": part_id, "delta": text}
-
-    @staticmethod
-    def reasoning_end(part_id):
-        return {"type": "reasoning-end", "id": part_id}
-
-    @staticmethod
     def ui(data):
         return {"type": "data-ui-data", "data": data}
 
