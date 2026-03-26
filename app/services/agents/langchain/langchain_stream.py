@@ -48,16 +48,6 @@ def _message_content(message: object) -> str:
     return str(content) if content is not None else ""
 
 
-def _latest_assistant_text(messages: list[object]) -> str:
-    """Read the latest assistant message text from final graph state."""
-    for message in reversed(messages):
-        if getattr(message, "type", "") in {"ai", "assistant"}:
-            text = _message_content(message)
-            if text:
-                return text
-    return ""
-
-
 async def langchain_events_to_internal(events, *, out: dict | None = None):
     """Translate LangGraph astream events into the shared internal stream format."""
     text_part_id = f"text_{uuid.uuid4().hex}"
