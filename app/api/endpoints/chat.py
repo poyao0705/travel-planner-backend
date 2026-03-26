@@ -31,20 +31,11 @@ async def chat_endpoint(
 
     session_id = data.get("id", "default_session")
     user_id = "default_user"
-    runtime = (data.get("runtime") or "langchain").lower()
-
-    if runtime == "langchain":
-        stream = chat_service.stream_chat_response_langchain(
-            user_id,
-            session_id,
-            last_message,
-        )
-    else:
-        stream = chat_service.stream_chat_response_adk(
-            user_id,
-            session_id,
-            last_message,
-        )
+    stream = chat_service.stream_chat_response_langchain(
+        user_id,
+        session_id,
+        last_message,
+    )
 
     return StreamingResponse(
         stream,
