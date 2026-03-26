@@ -24,9 +24,8 @@ class ChatService:
 
     def _langchain_thread_id(self, user_id: str, session_id: str) -> str:
         return f"{user_id}:{session_id}"
-    
+
     def build_ui_data(self, state: dict):
-        # This function can be expanded to format the response in a way that's optimal for the frontend UI
         state_payload = normalize_mapping(state)
         if not state_payload:
             return {}
@@ -86,7 +85,9 @@ class ChatService:
             },
         )
 
-        async for chunk in stream_events_to_vercel_sse(self.langchain_stream.stream(context)):
+        async for chunk in stream_events_to_vercel_sse(
+            self.langchain_stream.stream(context)
+        ):
             yield chunk
 
 

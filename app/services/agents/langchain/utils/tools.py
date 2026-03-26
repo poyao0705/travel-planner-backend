@@ -55,27 +55,16 @@ def geocode_destination_city(city: str) -> MapResult:
     )
 
 
-# @tool
-# def geocode_location(location: str) -> dict:
-#     """Geocode a destination city and return a map payload."""
-
-#     result = geocode_destination_city(location)
-#     data = result.model_dump()
-#     center = data.pop("center", None)
-#     data["latitude"] = center[0] if center else None
-#     data["longitude"] = center[1] if center else None
-#     return data
-
 @tool
 def geocode_location(location: str) -> dict:
     """Geocode a destination city and return a map payload."""
-    result_obj = GEOCODER.geocode(location)
-
+    result_obj = geocode_destination_city(location)
+    center = result_obj.center
     result = {
-        "found": result_obj is not None,
-        "query": location,
-        "latitude": result_obj.latitude if result_obj else None,
-        "longitude": result_obj.longitude if result_obj else None,
-        "display_name": result_obj.address if result_obj else None,
+        "found": result_obj.found,
+        "query": result_obj.query,
+        "latitude": center[0] if center else None,
+        "longitude": center[1] if center else None,
+        "display_name": result_obj.display_name,
     }
     return result
