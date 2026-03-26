@@ -11,6 +11,7 @@ def get_root_llm() -> ChatOpenRouter:
         reasoning={"effort": "high", "summary": "auto"},
     )
 
+@lru_cache
 def get_map_agent_llm() -> ChatOpenRouter:
     """Initializes and returns the language model for the map agent."""
     return ChatOpenRouter(
