@@ -1,5 +1,7 @@
 import argparse
+from functools import lru_cache
 from operator import add
+from typing import Literal
 
 from langchain.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import InMemorySaver
@@ -12,6 +14,9 @@ from app.services.agents.langchain.utils.prompt import COORDINATOR_PROMPT_V0
 
 
 CHECKPOINTER = InMemorySaver()
+GraphVariant = Literal["stable", "experimental", "langgraph-v2"]
+DEFAULT_GRAPH_VARIANT: GraphVariant = "stable"
+SUPPORTED_GRAPH_VARIANTS = frozenset({"stable", "experimental", "langgraph-v2"})
 
 
 class MissingField(BaseModel):
@@ -149,9 +154,26 @@ def build_graph():
     return graph
 
 
-def get_travel_agent():
-    """Return the compiled coordinator graph."""
-    return build_graph().compile(checkpointer=CHECKPOINTER)
+def build_stable_graph():
+    """Build the stable coordinator graph."""
+    return build_graph()
+
+
+def build_experimental_graph():
+    """Build the experimental coordinator graph."""
+    return build_graph()
+
+
+@lru_cache
+def get_travel_agent(graph_variant: GraphVariant = DEFAULT_GRAPH_VARIANT):
+    """Return the compiled coordinator graph for the requested variant."""
+    if graph_variant == "stable":
+        return build_stable_graph().compile(checkpointer=CHECKPOINTER)
+
+    if graph_variant in {"experimental", "langgraph-v2"}:
+        return build_experimental_graph().compile(checkpointer=CHECKPOINTER)
+
+    raise ValueError(f"Unsupported graph variant: {graph_variant}")
 
 
 if __name__ == "__main__":
