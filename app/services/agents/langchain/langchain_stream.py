@@ -22,27 +22,48 @@ def _extract_text_chunks(message: object) -> list[str]:
 
     return text_chunks
 
+
+def _extract_message_text(message: object) -> str:
+    """Return joined text content from a LangChain AI message or chunk."""
+    return "".join(_extract_text_chunks(message))
+
 async def langchain_events_to_internal(events, *, out: dict | None = None):
     """Translate LangGraph astream events into the shared internal stream format."""
     text_part_id = f"text_{uuid.uuid4().hex}"
     text_started = False
     latest_values: Any = None
+    streamed_text = ""
 
     async for part in events:
         part_type = part.get("type")
 
         if part_type == "messages":
             message, _ = part["data"]
-            text_chunks = _extract_text_chunks(message)
+            if isinstance(message, AIMessageChunk):
+                text_chunks = _extract_text_chunks(message)
 
-            if text_chunks:
+                if text_chunks:
+                    chunk_text = "".join(text_chunks)
+                    streamed_text += chunk_text
+                    if not text_started:
+                        yield StreamEvent.text_start(text_part_id)
+                        text_started = True
+                    yield StreamEvent.text_delta(text_part_id, chunk_text)
+
+            elif isinstance(message, AIMessage):
+                message_text = _extract_message_text(message)
+                if not message_text:
+                    continue
+
+                if streamed_text and message_text == streamed_text:
+                    streamed_text = ""
+                    continue
+
                 if not text_started:
                     yield StreamEvent.text_start(text_part_id)
                     text_started = True
-                yield StreamEvent.text_delta(
-                    text_part_id,
-                    "".join(text_chunks),
-                )
+                yield StreamEvent.text_delta(text_part_id, message_text)
+                streamed_text = ""
 
         elif part_type == "values":
             latest_values = part["data"]

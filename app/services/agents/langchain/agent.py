@@ -7,7 +7,7 @@ from langgraph.graph import END, START, StateGraph
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from app.core.llm import get_root_llm
+from app.core.llm import get_extractor_llm, get_stream_llm
 from app.services.agents.langchain.utils.prompt import COORDINATOR_PROMPT_V0
 
 
@@ -38,40 +38,55 @@ class TripState(BaseModel):
     )
 
 
-class CoordinatorOutput(BaseModel):
-    reply: str
+class CityExtraction(BaseModel):
     city: str | None = Field(
         default=None,
-        description="The destination city extracted from the user's messages, or null if not found.",
+        description="The destination city extracted from the latest user message, or null if not found.",
     )
 
 
-def coordinator_node(state: TripState) -> TripState:
-    """Extract destination city from the conversation and route accordingly."""
-    missing = state.missing_field or []
+def _get_latest_user_message_text(messages: list[AnyMessage]) -> str:
+    for chat_message in reversed(messages):
+        if isinstance(chat_message, HumanMessage):
+            content = getattr(chat_message, "content", "")
+            if isinstance(content, str):
+                return content
+    return ""
 
-    system_prompt = COORDINATOR_PROMPT_V0
 
-    if missing:
-        system_prompt += f"""
-    Missing required fields: {missing}
+def extraction_node(state: TripState) -> TripState:
+    latest_user_message = _get_latest_user_message_text(state.messages)
+    if not latest_user_message:
+        return {}
 
-    Ask a follow-up question to collect ONLY the missing fields.
-    Do not ask about fields that are already provided.
-    """
+    extractor_llm = get_extractor_llm().with_structured_output(CityExtraction)
 
-    llm = get_root_llm().with_structured_output(CoordinatorOutput)
-    result = llm.invoke(
-        [SystemMessage(content=system_prompt)] + state.messages
+    extraction_prompt = """
+Extract the destination city from the latest user message.
+
+Rules:
+- Only extract. Do not generate, rewrite, or infer extra details.
+- Return city = null if no destination city is present.
+- Return city = null for countries, regions, islands, states, provinces, or broad destinations.
+- Valid output must be a real city name only.
+
+Examples:
+- "I want to travel to Taipei next month." -> city = "Taipei"
+- "Plan me a trip to Taiwan." -> city = null
+- "I want to visit Japan." -> city = null
+"""
+
+    result = extractor_llm.invoke(
+        [
+            SystemMessage(content=extraction_prompt),
+            HumanMessage(content=latest_user_message),
+        ]
     )
-    update = {
-        "messages": [AIMessage(content=result.reply)]
-    }
 
-    if result.city:
-        update["city"] = result.city
+    if not result.city:
+        return {}
 
-    return update
+    return {"city": result.city}
 
 
 def coordinator_validator(state: TripState) -> TripState:
@@ -85,19 +100,52 @@ def coordinator_validator(state: TripState) -> TripState:
         "missing_field": missing,
     }
 
-def coordinator_router(_state: TripState) -> str:
-    """End the current turn after validation and resume on the next user message."""
-    return END
+
+def response_node(state: TripState) -> TripState:
+    missing = state.missing_field or []
+
+    # -----------------------------
+    # STREAMING LLM (UX)
+    # -----------------------------
+    system_prompt = COORDINATOR_PROMPT_V0
+
+    if state.city:
+        system_prompt += f"""
+
+Known destination city: {state.city}
+Confirm the city and continue the planning conversation without asking for the destination again.
+"""
+
+    if missing:
+        system_prompt += f"""
+Missing required fields: {missing}
+Ask ONLY for missing fields.
+"""
+
+    stream_llm = get_stream_llm()
+
+    stream = stream_llm.stream(
+        [SystemMessage(content=system_prompt)] + state.messages
+    )
+
+    full_reply = ""
+    for chunk in stream:
+        token = getattr(chunk, "content", "")
+        full_reply += token
+
+    return {"messages": [AIMessage(content=full_reply)]}
 
 
 def build_graph():
     """Build the LangGraph coordinator for destination intake."""
     graph = StateGraph(TripState)
-    graph.add_node("coordinator_node", coordinator_node)
+    graph.add_node("extraction_node", extraction_node)
     graph.add_node("coordinator_validator", coordinator_validator)
-    graph.add_edge(START, "coordinator_node")
-    graph.add_edge("coordinator_node", "coordinator_validator")
-    graph.add_conditional_edges("coordinator_validator", coordinator_router)
+    graph.add_node("response_node", response_node)
+    graph.add_edge(START, "extraction_node")
+    graph.add_edge("extraction_node", "coordinator_validator")
+    graph.add_edge("coordinator_validator", "response_node")
+    graph.add_edge("response_node", END)
     return graph
 
 
