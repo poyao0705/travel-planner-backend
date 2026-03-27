@@ -23,13 +23,6 @@ class StreamEvent:
         return {"type": "start", "messageId": message_id}
 
     @staticmethod
-    def token(text, part_id=None):
-        payload = {"type": "text-delta", "delta": text}
-        if part_id is not None:
-            payload["id"] = part_id
-        return payload
-
-    @staticmethod
     def text_start(part_id):
         return {"type": "text-start", "id": part_id}
 
@@ -48,24 +41,6 @@ class StreamEvent:
     @staticmethod
     def finish():
         return {"type": "finish"}
-
-class StreamPipeline:
-    def __init__(self, executor, transformer=None):
-        self.executor = executor
-        self.transformer = transformer
-
-    async def stream(self, context):
-        yield StreamEvent.start(context.message_id)
-
-        async for event in self.executor.run(context):
-            yield event
-
-        if self.transformer:
-            extra = await self.transformer(context)
-            if extra:
-                yield StreamEvent.ui(extra)
-
-        yield StreamEvent.finish()
 
 
 def build_message_id() -> str:
@@ -100,12 +75,3 @@ async def stream_events_to_vercel_sse(events: AsyncIterable[dict[str, Any]]):
 
     if not saw_finish:
         yield DONE_SSE_EVENT
-class LangChainExecutor:
-    def __init__(self, event_source, event_adapter):
-        self.event_source = event_source
-        self.event_adapter = event_adapter
-
-    async def run(self, context):
-        events = self.event_source(context)
-        async for chunk in self.event_adapter(events, context):
-            yield chunk
