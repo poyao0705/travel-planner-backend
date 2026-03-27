@@ -1,8 +1,8 @@
 from langchain.messages import AIMessage, AnyMessage, HumanMessage, SystemMessage
 
 from app.core.llm import get_extractor_llm, get_stream_llm
-from app.services.agents.utils.prompt import COORDINATOR_PROMPT_V0
-from app.services.agents.utils.schema import (
+from app.services.agents.langchain.utils.prompt import COORDINATOR_PROMPT_V0
+from app.services.agents.langchain.utils.schema import (
     CityExtraction,
     MissingField,
     TripState,

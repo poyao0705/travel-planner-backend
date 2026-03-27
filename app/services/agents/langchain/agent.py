@@ -6,12 +6,12 @@ from langchain.messages import HumanMessage
 from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, StateGraph
 
-from app.services.agents.utils.nodes import (
+from app.services.agents.langchain.utils.nodes import (
     coordinator_validator,
     extraction_node,
     response_node,
 )
-from app.services.agents.utils.schema import TripState
+from app.services.agents.langchain.utils.schema import TripState
 
 
 CHECKPOINTER = InMemorySaver()

@@ -3,7 +3,7 @@ from typing import Any
 
 from langchain_core.messages import AIMessageChunk
 
-from app.services.agents.stream import StreamEvent
+from app.services.agents.langchain.stream import StreamEvent
 
 
 def _extract_text_chunks(message: object) -> list[str]:

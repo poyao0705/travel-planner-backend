@@ -3,7 +3,7 @@ import os
 from fastapi import APIRouter, Request, Depends
 from fastapi.responses import StreamingResponse, JSONResponse
 from app.core.log import get_logger
-from app.services.agents.agent import DEFAULT_GRAPH_VARIANT, SUPPORTED_GRAPH_VARIANTS
+from app.services.agents.langchain.agent import DEFAULT_GRAPH_VARIANT, SUPPORTED_GRAPH_VARIANTS
 from app.services.chat_service import ChatService
 from app.dependencies import get_chat_service
 

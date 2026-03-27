@@ -1,8 +1,8 @@
 from langchain.messages import HumanMessage
 
-from app.services.agents.agent import DEFAULT_GRAPH_VARIANT, get_travel_agent
-from app.services.agents.langchain_stream import langchain_events_to_internal
-from app.services.agents.stream import (
+from app.services.agents.langchain.agent import DEFAULT_GRAPH_VARIANT, get_travel_agent
+from app.services.agents.langchain.langchain_stream import langchain_events_to_internal
+from app.services.agents.langchain.stream import (
     StreamEvent,
     StreamContext,
     build_message_id,
