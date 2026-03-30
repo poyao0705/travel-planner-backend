@@ -6,7 +6,8 @@ An AI agent for travel planning
 The chat endpoint accepts an optional `runtime` field in the request body.
 
 - `"langchain"` is the current default runtime for testing.
-- `"adk"` remains available as an explicit override.
+- `"agno"` is available as an explicit override.
+- `"adk"` is accepted as a backward-compatible alias for `"agno"`.
 
 The LangChain chat endpoint also supports an internal graph selector.
 
