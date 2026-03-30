@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+from agno.run.agent import RunEvent
 from agno.run.workflow import WorkflowRunEvent
 
 from app.services.agents.agno.steps import FOLLOW_UP_AGENT_NAME, PLANNING_STEP_NAME
@@ -9,22 +10,33 @@ from app.services.agents.stream import StreamEvent
 VISIBLE_STEP_NAMES = frozenset({FOLLOW_UP_AGENT_NAME, PLANNING_STEP_NAME})
 
 
-
 async def agno_events_to_internal(events, *, workflow, session_id: str):
     text_part_id = f"text_{uuid4().hex}"
     text_started = False
+    current_step_name = None
 
     async for event in events:
-        if getattr(event, "event", "") != WorkflowRunEvent.step_completed.value:
+        event_type = getattr(event, "event", "")
+
+        if event_type == WorkflowRunEvent.step_started.value:
+            current_step_name = getattr(event, "step_name", None)
             continue
 
-        step_name = getattr(event, "step_name", None)
+        if event_type == WorkflowRunEvent.step_completed.value:
+            current_step_name = None
+            continue
+
+        # Only yield RunContentEvent — these are the token deltas.
+        # RunCompletedEvent also has `content` but carries the full accumulated
+        # response, which would duplicate everything already streamed.
+        if event_type != RunEvent.run_content.value:
+            continue
+
+        if current_step_name not in VISIBLE_STEP_NAMES:
+            continue
+
         content = getattr(event, "content", None)
-
-        if step_name not in VISIBLE_STEP_NAMES:
-            continue
-
-        if not isinstance(content, str) or not content.strip():
+        if not isinstance(content, str) or not content:
             continue
 
         if not text_started:
