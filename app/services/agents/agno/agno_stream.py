@@ -49,5 +49,5 @@ async def agno_events_to_internal(events, *, workflow, session_id: str):
         yield StreamEvent.text_end(text_part_id)
 
     yield StreamEvent.ui(
-        {"session_state": workflow.get_session_state(session_id=session_id) or {}}
+        workflow.get_session_state(session_id=session_id) or {}
     )
