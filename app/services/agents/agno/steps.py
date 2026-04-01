@@ -19,7 +19,7 @@ PLANNING_STEP_NAME = "Planning Step"
 def build_extraction_agent() -> Agent:
     return Agent(
         name=EXTRACTION_AGENT_NAME,
-        model=OpenRouter(id="gpt-5-mini"),
+        model=OpenRouter(id="gpt-5.4-mini"),
         instructions=EXTRACTION_INSTRUCTIONS,
         session_state={"trip": TripState().model_dump()},
         tools=[set_trip_info],
@@ -34,7 +34,7 @@ def build_extraction_agent() -> Agent:
 def build_follow_up_agent() -> Agent:
     return Agent(
         name=FOLLOW_UP_AGENT_NAME,
-        model=OpenRouter(id="gpt-5-mini"),
+        model=OpenRouter(id="gpt-5.4-mini"),
         instructions=FOLLOW_UP_INSTRUCTIONS,
         add_session_state_to_context=True,
     )
