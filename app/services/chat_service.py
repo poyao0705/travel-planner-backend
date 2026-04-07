@@ -1,5 +1,5 @@
-from app.services.agents.agno.agno_stream import agno_events_to_internal
-from app.services.agents.agno.workflow import travel_planner_workflow
+from app.services.agents.agno.utils.agno_stream import agno_events_to_internal
+from app.services.agents.agno.workflows.travel_planner import travel_planner_workflow
 from app.services.agents.stream import (
     StreamEvent,
     StreamContext,

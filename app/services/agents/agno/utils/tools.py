@@ -15,7 +15,7 @@ class TripInput(BaseModel):
     budget: str | None = Field(default=None, description="Budget range")
 
 
-@tool(stop_after_tool_call=True)
+@tool
 def set_trip_info(run_context: RunContext, trip_input: TripInput) -> str:
     """Store extracted trip details in session state."""
     trip = TripState.model_validate(run_context.session_state.get("trip", {}))
