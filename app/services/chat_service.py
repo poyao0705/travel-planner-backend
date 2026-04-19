@@ -1,6 +1,9 @@
 import uuid
 
-from app.services.agents.langchain.agent import graph as langgraph_graph
+from app.services.agents.langchain.agent import (
+    build_graph_config,
+    graph as langgraph_graph,
+)
 from app.services.agents.langchain.utils.langgraph_stream import (
     langgraph_events_to_internal,
 )
@@ -20,13 +23,9 @@ class ChatService:
         yield StreamEvent.start(context.message_id)
 
         part_id = f"text_{uuid.uuid4().hex}"
-        config = {
-            "configurable": {
-                "thread_id": self._langgraph_thread_id(
-                    context.user_id, context.session_id
-                ),
-            }
-        }
+        config = build_graph_config(
+            self._langgraph_thread_id(context.user_id, context.session_id)
+        )
         events = langgraph_graph.astream(
             {"messages": [{"role": "user", "content": context.message_text}]},
             config=config,
