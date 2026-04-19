@@ -35,7 +35,10 @@ async def chat_endpoint(
     user_id = "default_user"
 
     logger.info("messages: %s", messages)
-    stream = chat_service.stream_chat_response_agno(user_id, session_id, last_message)
+
+    stream = chat_service.stream_chat_response_langgraph(
+        user_id, session_id, last_message
+    )
 
     return StreamingResponse(
         stream,
