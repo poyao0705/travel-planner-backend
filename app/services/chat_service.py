@@ -1,15 +1,20 @@
 import uuid
 
+from langchain.messages import HumanMessage
+from langgraph.graph import MessagesState
+
 from app.services.agents.langchain.agent import (
     build_graph_config,
+)
+from app.services.agents.langchain.agent import (
     graph as langgraph_graph,
 )
 from app.services.agents.langchain.utils.langgraph_stream import (
     langgraph_events_to_internal,
 )
 from app.services.agents.stream import (
-    StreamEvent,
     StreamContext,
+    StreamEvent,
     build_message_id,
     stream_events_to_vercel_sse,
 )
@@ -27,9 +32,13 @@ class ChatService:
             self._langgraph_thread_id(context.user_id, context.session_id)
         )
         events = langgraph_graph.astream(
-            {"messages": [{"role": "user", "content": context.message_text}]},
+            # State to be put in the graph for execution.
+            MessagesState(
+                messages=[HumanMessage(content=context.message_text)],
+            ),
             config=config,
-            stream_mode="messages",
+            stream_mode=["values", "updates", "messages", "custom"],
+            version="v2",
         )
 
         async for chunk in langgraph_events_to_internal(events, part_id=part_id):
@@ -54,4 +63,3 @@ class ChatService:
             self._stream_langgraph_events(context)
         ):
             yield chunk
-

@@ -1,4 +1,4 @@
-from typing import Any, AsyncIterable
+from typing import Any, AsyncIterator
 
 from app.services.agents.stream import StreamEvent
 
@@ -20,7 +20,7 @@ def _extract_text(content: Any) -> str:
 
 
 async def langgraph_events_to_internal(
-    events: AsyncIterable[tuple[Any, dict[str, Any]]],
+    events: AsyncIterator,
     *,
     part_id: str,
 ):
@@ -30,21 +30,21 @@ async def langgraph_events_to_internal(
     """
     started = False
 
-    async for chunk, _metadata in events:
-        # Only stream assistant-produced token chunks.
-        chunk_type = getattr(chunk, "type", None)
-        if chunk_type and chunk_type not in ("AIMessageChunk", "ai"):
-            continue
+    # Refactor to version 2 of langgraph streaming API
+    async for part in events:
+        if part["type"] == "messages":
+            msg, _ = part["data"]
+            #
+            content = _extract_text(getattr(msg, "content", None))
+            # Explicitly skip empty text parts to avoid emitting empty text deltas.
+            if content == "":
+                continue
 
-        text = _extract_text(getattr(chunk, "content", None))
-        if not text:
-            continue
+            if not started:
+                yield StreamEvent.text_start(part_id)
+                started = True
 
-        if not started:
-            yield StreamEvent.text_start(part_id)
-            started = True
-
-        yield StreamEvent.text_delta(part_id, text)
+            yield StreamEvent.text_delta(part_id, content)
 
     if started:
         yield StreamEvent.text_end(part_id)
