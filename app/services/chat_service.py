@@ -1,16 +1,10 @@
 import uuid
-from typing import cast
+from typing import Any, cast
 
 from langchain.messages import HumanMessage
 from langchain_core.runnables import RunnableConfig
 from langgraph.graph import MessagesState
 
-from app.services.agents.langchain.agent import (
-    build_graph_config,
-)
-from app.services.agents.langchain.agent import (
-    graph as langgraph_graph,
-)
 from app.services.agents.langchain.utils.langgraph_stream import (
     langgraph_events_to_internal,
 )
@@ -23,6 +17,9 @@ from app.services.agents.stream import (
 
 
 class ChatService:
+    def __init__(self, langgraph_graph: Any):
+        self.langgraph_graph = langgraph_graph
+
     def _langgraph_thread_id(self, user_id: str, session_id: str) -> str:
         return f"{user_id}:{session_id}"
 
@@ -33,9 +30,16 @@ class ChatService:
 
         config = cast(
             RunnableConfig,
-            {"configurable": {"thread_id": f"{context.user_id}:{context.session_id}"}},
+            {
+                "configurable": {
+                    "thread_id": self._langgraph_thread_id(
+                        context.user_id,
+                        context.session_id,
+                    )
+                }
+            },
         )
-        events = langgraph_graph.astream(
+        events = self.langgraph_graph.astream(
             # State to be put in the graph for execution.
             MessagesState(
                 messages=[HumanMessage(content=context.message_text)],
