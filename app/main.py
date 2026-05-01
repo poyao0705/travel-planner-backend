@@ -1,13 +1,12 @@
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
-from dotenv import load_dotenv
 
 # Force load the .env in the root into the environment
 load_dotenv(override=True)
 
-from app.core.log import setup_logging
 from app.api.v1 import router as v1
+from app.core.log import setup_logging
 
 app = FastAPI()
 setup_logging(level="INFO")

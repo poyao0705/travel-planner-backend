@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Request, Depends
-from fastapi.responses import StreamingResponse, JSONResponse
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import JSONResponse, StreamingResponse
+
 from app.core.log import get_logger
-from app.services.chat_service import ChatService
 from app.dependencies import get_chat_service
+from app.services.chat_service import ChatService
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -32,6 +33,8 @@ async def chat_endpoint(
         return JSONResponse({"error": "no message content"}, status_code=400)
 
     session_id = data.get("id", "default_session")
+    logger.info("session_id: %s", session_id)
+    logger.info("last_message: %s", last_message)
     user_id = "default_user"
 
     logger.info("messages: %s", messages)
