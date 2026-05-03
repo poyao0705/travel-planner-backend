@@ -1,5 +1,5 @@
+from langchain.chat_models import init_chat_model
 from langchain_core.runnables import RunnableConfig
-from langchain_openrouter import ChatOpenRouter
 
 # from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
@@ -13,8 +13,9 @@ def build_graph_config(thread_id: str) -> RunnableConfig:
 
 
 def build_graph(tools):
-    model = ChatOpenRouter(
-        model="anthropic/claude-sonnet-4.6",
+    model = init_chat_model(
+        model_provider="openrouter",
+        model="openai/gpt-5.4",
         temperature=0,
         max_tokens=1024,
     ).bind_tools(tools)
